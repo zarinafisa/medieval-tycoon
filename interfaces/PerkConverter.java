@@ -1,6 +1,6 @@
 package interfaces;
 
-import ...Perk;
+import model.Perk;
 
 public interface PerkConverter {
 
