@@ -16,15 +16,14 @@ public class MainMenu extends JFrame {
     public MainMenu() {
         setTitle("Medieval Tycoon");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setSize(800, 600);
         try {
             // Try multiple approaches to load the font
-            File fontFile = new File("assets/fonts/medieval.ttf");
+            File fontFile = new File("assets/fonts/medieval.otf");
             if (!fontFile.exists()) {
-                fontFile = new File("../assets/fonts/medieval.ttf");
+                fontFile = new File("../assets/fonts/medieval.otf");
             }
-            titleFont = Font.createFont(Font.TRUETYPE_FONT, fontFile).deriveFont(72f);
+            titleFont = Font.createFont(Font.TRUETYPE_FONT, fontFile).deriveFont(104f);
             buttonFont = new Font("Serif", Font.BOLD, 24);
         } catch (Exception e) {
             System.err.println("Error loading font: " + e.getMessage());
@@ -53,6 +52,8 @@ public class MainMenu extends JFrame {
         cardsPanel.setOpaque(false);
         
         GamePanel gamePanel = new GamePanel();
+        SettingsPanel settingsPanel = new SettingsPanel();
+        PauseMenuPanel pauseMenuPanel = new PauseMenuPanel(cardLayout, cardsPanel);
         
         // Build menu card with title
         JPanel menuPanel = new JPanel(new BorderLayout());
@@ -77,10 +78,71 @@ public class MainMenu extends JFrame {
         JButton settingsButton = createStyledButton("Settings");
         JButton exitButton = createStyledButton("Exit Game");
         
-        // Button actions
+        // New Game creation panel with background and styled input box
+        JPanel newGamePanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                try {
+                    Image bgImg = new ImageIcon(getClass().getResource("../assets/background.png")).getImage();
+                    g.drawImage(bgImg, 0, 0, getWidth(), getHeight(), this);
+                } catch (Exception e) {
+                    g.setColor(new Color(50, 30, 10));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                }
+            }
+        };
+        newGamePanel.setOpaque(false);
+
+        JPanel inputBoxPanel = new JPanel(new GridBagLayout());
+        inputBoxPanel.setOpaque(false);
+        JPanel inputContent = new JPanel();
+        inputContent.setLayout(new BoxLayout(inputContent, BoxLayout.Y_AXIS));
+        inputContent.setBackground(Color.WHITE);
+        inputContent.setBorder(BorderFactory.createLineBorder(Color.GRAY, 5));
+        inputContent.setOpaque(true);
+        inputContent.setMaximumSize(new Dimension(400, 250));
+        inputContent.setPreferredSize(new Dimension(400, 250));
+
+        JLabel userLabel = new JLabel("Enter your username:");
+        userLabel.setFont(new Font("Serif", Font.BOLD, 28));
+        userLabel.setForeground(Color.BLACK);
+        userLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        userLabel.setBorder(new EmptyBorder(30, 0, 10, 0));
+        inputContent.add(userLabel);
+
+        JTextField userField = new JTextField(20);
+        userField.setFont(new Font("Serif", Font.PLAIN, 24));
+        userField.setMaximumSize(new Dimension(300, 50));
+        userField.setAlignmentX(Component.CENTER_ALIGNMENT);
+        inputContent.add(userField);
+        inputContent.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        JButton createGameButton = createStyledButton("Create New Game");
+        createGameButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        inputContent.add(createGameButton);
+        inputContent.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        inputBoxPanel.add(inputContent);
+        newGamePanel.add(inputBoxPanel, BorderLayout.CENTER);
+
+        // Action for Create New Game
+        createGameButton.addActionListener(e -> {
+            String username = userField.getText().trim();
+            if (!username.isEmpty()) {
+                gamePanel.getPlayer().setUsername(username);
+                cardLayout.show(cardsPanel, "GAME");
+                gamePanel.requestFocusInWindow();
+            } else {
+                JOptionPane.showMessageDialog(this, "Username cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        // New Game button now shows the new game panel
         newGameButton.addActionListener(e -> {
-            cardLayout.show(cardsPanel, "GAME");
-            gamePanel.requestFocusInWindow();
+            userField.setText("");
+            cardLayout.show(cardsPanel, "NEW_GAME");
+            userField.requestFocusInWindow();
         });
         
         loadGameButton.addActionListener(e -> {
@@ -90,9 +152,7 @@ public class MainMenu extends JFrame {
         });
         
         settingsButton.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, 
-                "Settings panel will be available soon!", 
-                "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+            cardLayout.show(cardsPanel, "SETTINGS");
         });
         
         exitButton.addActionListener(e -> {
@@ -122,17 +182,25 @@ public class MainMenu extends JFrame {
         
         cardsPanel.add(menuPanel, "MENU");
         cardsPanel.add(gamePanel, "GAME");
+        cardsPanel.add(settingsPanel, "SETTINGS");
+        cardsPanel.add(pauseMenuPanel, "PAUSE_MENU");
+        cardsPanel.add(newGamePanel, "NEW_GAME");
+          backgroundPanel.add(cardsPanel, BorderLayout.CENTER);
         
-        backgroundPanel.add(cardsPanel, BorderLayout.CENTER);
-        
-        // 
+        // Only enable the ESC key for pause menu when in GAME mode
         InputMap inputMap = cardsPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = cardsPanel.getActionMap();
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "backToMenu");
-        actionMap.put("backToMenu", new AbstractAction() {
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "showPauseMenu");
+        actionMap.put("showPauseMenu", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                cardLayout.show(cardsPanel, "MENU");
+                // Only show pause menu if the GAME panel is currently visible
+                for (Component comp : cardsPanel.getComponents()) {
+                    if (comp.isVisible() && comp == gamePanel) {
+                        cardLayout.show(cardsPanel, "PAUSE_MENU");
+                        break;
+                    }
+                }
             }
         });
         

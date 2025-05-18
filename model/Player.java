@@ -9,15 +9,16 @@ public class Player {
     private String username;
     private int ID;
     private int level;
+    private int money;
     
     public Player() {}
     
     public Player(String username) {
         this.username = username;
-        this.ID = (int) (Math.random() % 1000);
+        this.ID = (int) (Math.random() * 9999999 + 80000000);
+        this.level = 1;
+        this.money = 100;
     }
-
-
 
     public String getUsername() {
         return username;
@@ -43,6 +44,10 @@ public class Player {
         this.level = level;
     }
 
+    public int getMoney() {
+        return money;
+    }
+    
     public class PlayerMovement {
         private int x = 64, y = 64;
         private final int speed = 5;
@@ -67,6 +72,34 @@ public class Player {
             if (down)  { y += speed; direction = 0; moving = true; }
             if (left)  { x -= speed; direction = 1; moving = true; }
             if (right) { x += speed; direction = 2; moving = true; }
+
+            if (moving) {
+                animCount++;
+                if (animCount >= animDelay) {
+                    animCount = 0;
+                    frameIndex = (frameIndex + 1) % sprites[direction].length;
+                }
+            } else {
+                frameIndex = 0;
+            }
+        }
+
+        // New update method for collision with map boundaries
+        public void update(int mapWidth, int mapHeight, int tileSize) {
+            boolean moving = false;
+            if (up)    { y -= speed; direction = 3; moving = true; }
+            if (down)  { y += speed; direction = 0; moving = true; }
+            if (left)  { x -= speed; direction = 1; moving = true; }
+            if (right) { x += speed; direction = 2; moving = true; }
+
+            // Clamp to map boundaries
+            int min = 0;
+            int maxX = mapWidth * tileSize - tileSize;
+            int maxY = mapHeight * tileSize - tileSize;
+            if (x < min) x = min;
+            if (y < min) y = min;
+            if (x > maxX) x = maxX;
+            if (y > maxY) y = maxY;
 
             if (moving) {
                 animCount++;

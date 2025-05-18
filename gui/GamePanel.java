@@ -5,7 +5,6 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import model.*;
-import model.Player.*;
 import model.Player.PlayerMovement;
 import model.Player.PlayerSkin;
 import tiles.TileManager;
@@ -18,8 +17,10 @@ public class GamePanel extends JPanel implements Runnable {
     private int FPS = 60;
     private TileManager tileManager;
     private Camera camera;
+
     
-      public GamePanel() {
+    
+    public GamePanel() {
         setBackground(Color.BLACK);
         setFocusable(true);
         setFocusTraversalKeysEnabled(false);
@@ -49,16 +50,35 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     public void addNotify() {
         super.addNotify();
-        gameThread = new Thread(this);
-        gameThread.start();
-    }    
+        if (gameThread == null || !gameThread.isAlive()) {
+            gameThread = new Thread(this);
+            gameThread.start();
+        }
+    }
+
+    @Override
+    public void removeNotify() {
+        super.removeNotify();
+        // Stop the game thread when panel is removed
+        Thread oldThread = gameThread;
+        gameThread = null;
+        if (oldThread != null && oldThread.isAlive()) {
+            oldThread.interrupt();
+        }
+    }
+    
     @Override
     public void run() {
         final double drawInterval = 1000000000.0 / FPS;
         double nextDrawTime = System.nanoTime() + drawInterval;
         
         while (gameThread != null) {
-            playerMovement.update();
+            // Use new update method with map boundaries
+            playerMovement.update(
+                tileManager.getMapWidth(),
+                tileManager.getMapHeight(),
+                tileManager.getTileSize()
+            );
             repaint();
             
             try {
@@ -84,6 +104,28 @@ public class GamePanel extends JPanel implements Runnable {
         camera.update(playerMovement, tileManager, this);
         tileManager.draw(g2d, camera.getX(), camera.getY());
         PlayerSkin.render(g, playerMovement.getX() - camera.getX(), playerMovement.getY() - camera.getY(), playerMovement.getCurrentFrame());
+
+        // Draw money info (Gold) at upper right
+        String goldText = "Gold: " + player.getMoney() + "G";
+        g2d.setFont(new Font("Serif", Font.BOLD, 24));
+        FontMetrics fm = g2d.getFontMetrics();
+        int goldWidth = fm.stringWidth(goldText);
+        int goldX = getWidth() - goldWidth - 20;
+        int goldY = 40;
+        g2d.setColor(new Color(0,0,0,150));
+        g2d.fillRoundRect(goldX - 10, goldY - fm.getAscent(), goldWidth + 20, fm.getHeight() + 8, 12, 12);
+        g2d.setColor(new Color(218, 165, 32));
+        g2d.drawString(goldText, goldX, goldY);
+
+        // Draw UID at lower right
+        String uidText = "UID: " + player.getID();
+        int uidWidth = fm.stringWidth(uidText);
+        int uidX = getWidth() - uidWidth - 20;
+        int uidY = getHeight() - 20;
+        g2d.setColor(new Color(0,0,0,150));
+        g2d.fillRoundRect(uidX - 10, uidY - fm.getAscent(), uidWidth + 20, fm.getHeight() + 8, 12, 12);
+        g2d.setColor(Color.WHITE);
+        g2d.drawString(uidText, uidX, uidY);
     }
 
     
