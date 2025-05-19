@@ -6,7 +6,7 @@ public abstract class Pembeli implements Menawar {
 
     protected String kategori;
     protected double tawarMultiplier;
-    protected double maxTawaran;
+    protected int maxTawaran;
 
     public Pembeli(String kategori, double tawarMultiplier) {
         this.kategori = kategori;
@@ -22,13 +22,13 @@ public abstract class Pembeli implements Menawar {
         return kategori;
     }
 
-    public double getMaxTawaran() {
+    public int getMaxTawaran() {
         return maxTawaran;
     }
 
     public int generateOffer(int hargaJual) {
-        this.maxTawaran = tawarMultiplier * hargaJual;
-        return (int) maxTawaran;
+        maxTawaran = (int) (tawarMultiplier * hargaJual);
+        return maxTawaran;
     }
 
     @Override
